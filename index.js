@@ -105,10 +105,8 @@ class Viewer {
             _title = _parsedQ.title;
         } else {
             console.log('enforcing the default location...');
-            // _origin = [36.2058, -112.4413];
-            // _parsedQ.title = "Colorado River";
-            _origin = [-33.9625, 18.4107];
-            _title = "Table Mountain";
+            _origin =  [-37.30444, 148.90702];
+            _title = "Errinundra Plateau";
         }
 
         let _mode = _parsedQ.mode;
@@ -498,6 +496,11 @@ class GuiHelper extends DatGuiDefaults {
     initGui(gui, data, params) {
         this.locations = { // key: [lat, lng],
             "(none)": [0, 0], // dummy
+            "Errinundra Plateau": [-37.30444, 148.90702],
+            "Little River Gorge": [-37.07594, 148.31458],
+            "Arbuckle": [-37.39956, 146.77146],
+            "Cobbler": [-37.04308, 146.6219],
+            "Mt Buffalo": [-36.75591, 146.79111],
             "Table Mountain": [-33.9625, 18.4107],
             "Eiger": [46.5763, 7.9904],
             "Colorado River": [36.2058, -112.4413],
