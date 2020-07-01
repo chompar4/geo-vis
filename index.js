@@ -1,9 +1,16 @@
 const { THREE, Threelet, Stats, DatGuiDefaults, jQuery: $ } = window;
 
 const env = {
-    zoom: 13, // satellite zoom resolution -- min: 11, defaut: 13, max: 17
+    zoom: 15, // satellite zoom resolution -- min: 11, defaut: 13, max: 17
     tokenMapbox: 'pk.eyJ1IjoidGhvbXBzb25maWxtIiwiYSI6ImNrYzFhdXV6NTByZ2EydG9lODc4Y2V3b2QifQ.qwJLT2-CkC52qmsWxQ3e1g', // <---- set your Mapbox API token here
 };
+
+const createTextSprite = (text, color) => Threelet.Utils.createCanvasSprite(
+    Threelet.Utils.createCanvasFromText(text, 150, 40, {
+        tfg: color,
+        fontSize: '18px',
+        fontFamily: 'Times',
+    }));
 
 class Viewer {
     constructor(env, threelet) {
@@ -105,7 +112,7 @@ class Viewer {
             _title = _parsedQ.title;
         } else {
             console.log('enforcing the default location...');
-            _origin =  [-37.30444, 148.90702];
+            _origin =  [-37.30258, 148.91575];
             _title = "Errinundra Plateau";
         }
 
@@ -261,12 +268,21 @@ class Viewer {
 
         this._isRgbDemLoaded = true;
         this.tgeo.getTerrain(this._origin, this._radius, this._zoom, {
-            onRgbDem: (objs) => {
-                // dem-rgb-<zoompos>
-                objs.forEach((obj) => {
-                    this.objsInteractive.push(obj);
-                    this.scene.add(obj);
-                    // console.log('obj:', obj);
+            onRgbDem: (meshes) => {
+                meshes.forEach((mesh) => {
+                    console.log('rgb DEM mesh:', mesh);
+                    this.scene.add(mesh);
+                    console.log('userData:', mesh.userData);
+
+                    //======== how to visualize constituent tiles of the terrain
+                    const tile = mesh.userData.threeGeo.tile;
+                    const { proj } = this.tgeo.getProjection(this._origin, this._radius);
+                    const { obj, offset } = ThreeGeo.Utils.bboxToWireframe(
+                    ThreeGeo.Utils.tileToBbox(tile), proj, {offsetZ: - 0.05});
+        
+                    const sp = createTextSprite(`${tile.join('-')}`, '#000000');
+                    sp.position.set(offset[0], offset[1], offset[2] + 0.05);
+                    this.scene.add(obj, sp);
                 });
                 this._render();
             },
