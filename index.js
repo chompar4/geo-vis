@@ -12,6 +12,26 @@ const createTextSprite = (text, color) => Threelet.Utils.createCanvasSprite(
         fontFamily: 'Times',
     }));
 
+const createPoint = (lat, lng, elevation, viewer) => {
+
+    // add a point
+    const { proj, unitsPerMeter } = viewer.tgeo.getProjection(viewer._origin, viewer._radius);
+    const dot = new THREE.Points(
+        new THREE.Geometry(),
+        new THREE.PointsMaterial({
+            size: 8,
+            sizeAttenuation: false,
+            color: 0x00cccc,
+        }));
+
+    const [x, y] = proj([lat, lng]), z = elevation;
+
+    dot.geometry.vertices.push(new THREE.Vector3(
+        x, y, z * unitsPerMeter));
+    viewer.scene.add(dot);
+}
+    
+
 class Viewer {
     constructor(env, threelet) {
         this.env = env;
@@ -284,6 +304,9 @@ class Viewer {
                     sp.position.set(offset[0], offset[1], offset[2] + 0.05);
                     this.scene.add(obj, sp);
                 });
+
+                createPoint(-37.30051, 148.91593, 1000, this)
+
                 this._render();
             },
             onSatelliteMat: (plane) => {
