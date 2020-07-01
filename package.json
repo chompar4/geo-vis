@@ -1,0 +1,15 @@
+{
+  "name": "geo-vis",
+  "version": "1.0.0",
+  "description": "geographic visualisation tool",
+  "main": "index.js",
+  "dependencies": {
+    "three-geo": "^1.3.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "npm run open && node server.js",
+    "open": "open http://localhost:9000"
+  },
+  "author": "Sam Thompson (chompar4@gmail.com)"
+}
