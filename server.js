@@ -3,7 +3,7 @@ const fs = require('fs');
 const port = 9000;
 const app = http.createServer((req,res) => {
     res.writeHead(200);
-    if (req.url === '/') req.url = '/src/index.html'; // courtesy of @JosephCho
+    if (req.url === '/') req.url = '/index.html'; // courtesy of @JosephCho
     res.end(fs.readFileSync(__dirname + req.url));
 });
 
