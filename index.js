@@ -1,15 +1,7 @@
 const { THREE, Threelet, Stats, DatGuiDefaults, jQuery: $ } = window;
 
-// import L from 'leaflet';
-// import * as turfHelpers from '@turf/helpers';
-// import turfDistance from '@turf/distance';
-// import turfCircle from '@turf/circle/index';
-
-// import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
-
 const env = {
     zoom: 13, // satellite zoom resolution -- min: 11, defaut: 13, max: 17
-    enableTilesLeaflet: true,
     tokenMapbox: 'pk.eyJ1IjoidGhvbXBzb25maWxtIiwiYSI6ImNrYzFhdXV6NTByZ2EydG9lODc4Y2V3b2QifQ.qwJLT2-CkC52qmsWxQ3e1g', // <---- set your Mapbox API token here
 };
 
@@ -25,7 +17,6 @@ class Viewer {
         this.guiHelper = null;
 
         this.scene = new THREE.Scene();
-        this.sceneMeasure = new THREE.Scene();
 
         //======== add light
         if (0) {
@@ -56,13 +47,6 @@ class Viewer {
         const axes = new THREE.AxesHelper(1);
         axes.name = "singleton-axes";
         this.scene.add(axes);
-
-        //======== add laser
-        this._laser = new ThreeGeo.Laser({
-            color: 0xffffff,
-        });
-        this._laser.name = 'singleton-laser-vr';
-        this.scene.add(this._laser);
 
         // ======== adding geo tiles
         this.renderer.autoClear = false;
@@ -103,28 +87,12 @@ class Viewer {
 
         // ------- msg stuff
         this.$msg = $('#msg');
-        this.$msgMeasure = $('#msgMeasure');
         this.$msgTerrain = $('#msgTerrain');
-
-        // tmp laser for measurement
-        this._laserMarkTmp = new ThreeGeo.Laser({maxPoints: 2});
-        this._laserMarkTmp.name = 'singleton-measure-mark-tmp';
-        this.sceneMeasure.add(this._laserMarkTmp);
-
-        this.markPair = []; // now this.markPair.length === 0
-        this._laserMarkColor = null;
-
-        // ------- marker stuff
-        this._laserMarker = new ThreeGeo.Laser({maxPoints: 2});
-        this._laserMarker.visible = false;
-        this._laserMarker.name = 'singleton-marker';
-        this.scene.add(this._laserMarker);
 
         // ------- orbit stuff -------
         this._orbit = null;
         this._isOrbiting = false;
 
-        this._showVrLaser = false;
     } // end constructor()
 
     static parseQuery() {
@@ -194,9 +162,7 @@ class Viewer {
         //::::Mesh dem-rgb-...             vv   to be cleared
         //::::Line dem-vec-line-...        vv   to be cleared
         //::::Mesh dem-vec-shade-...       vv   to be cleared
-        //::::Laser ""     orbit           vv   this._updateLaserMarker(null)
         //::::LineLoop ""  orbit           vv   this._removeOrbit()
-        //::::Laser ""     pointer            intact
         //========
         this.scene.children.filter(
             obj => obj.name.startsWith('dem-'))
@@ -205,28 +171,10 @@ class Viewer {
                     Viewer._disposeObject(dem);
                 });
         //--
-        this._updateLaserMarker(null);
-        //--
         this._removeOrbit();
         if (this.guiHelper) {
             this.guiHelper.autoOrbitController.setValue(false);
         }
-        //--
-
-        // this.sceneMeasure.children
-        //::::Laser ""     this._laserMarkTmp   vv   this._updateLaserMarkTmp(null)
-        //::::Laser ""     measure         vv   to be cleared
-        //::::Laser ""     measure         vv   to be cleared
-        //...                              vv
-        //========
-        this._updateLaserMarkTmp(null);
-        //--
-        this.sceneMeasure.children.filter(
-            obj => obj.name.startsWith('measure-mark-'))
-                .forEach(mark => {
-                    mark.parent.remove(mark);
-                    Viewer._disposeObject(mark);
-                });
         //--
     }
     reloadPageWithLocation(ll, title=undefined) {
@@ -248,7 +196,6 @@ class Viewer {
                 console.log('======== ========');
                 console.log('this:', this);
                 console.log('this.scene.children:', this.scene.children);
-                console.log('this.sceneMeasure.children:', this.sceneMeasure.children);
                 console.log('======== ========');
             }
 
@@ -355,28 +302,6 @@ class Viewer {
         });
     }
 
-    // marker stuff --------
-    _updateLaserMarker(pt=null) {
-        if (pt) {
-            this._laserMarker.setSource(pt);
-            this._laserMarker.point(pt.clone().setZ(pt.z + 1.0), 0xff00ff);
-            this._laserMarker.visible = true;
-        } else {
-            this._laserMarker.clearPoints();
-            this._laserMarker.visible = false;
-        }
-    }
-    _updateLaserMarkTmp(pt0=null, pt1=null, color=0xffffff) {
-        if (pt0) {
-            this._laserMarkTmp.setSource(pt0);
-            this._laserMarkTmp.point(pt1, color);
-            this._laserMarkTmp.visible = true;
-        } else {
-            this.markPair.length = 0; // now this.markPair.length === 0
-            this._laserMarkTmp.visible = false;
-        }
-    }
-
     static _calcOrbit(cam, pt) {
         let campos = cam.position.clone();
 
@@ -424,72 +349,16 @@ class Viewer {
     toggleOrbiting(tf) {
         this._isOrbiting = tf;
     }
-    toggleVrLaser(tf) {
-        this._showVrLaser = tf;
-    }
     toggleGrids(tf) {
         this.scene.getObjectByName("singleton-walls").visible = tf;
         this.scene.getObjectByName("singleton-axes").visible = tf;
         this._render();
     }
 
-    // laser casting stuff --------
-    static _applyWithMeshesVisible(meshes, func) {
-        // console.log('meshes:', meshes);
-
-        // save mesh visibilities
-        let visibilities = {};
-        meshes.forEach((mesh) => {
-            visibilities[mesh.uuid] = mesh.visible; // save
-            mesh.visible = true; // forcing for raycast
-        });
-
-        let output = func(meshes);
-
-        // restore mesh visibilities
-        meshes.forEach((mesh) => {
-            mesh.visible = visibilities[mesh.uuid]; // restore
-        });
-
-        return output;
-    }
     _doRaycast(mx, my) {
         return Viewer._applyWithMeshesVisible(
             this.objsInteractive, (meshes) =>
                 this.threelet.raycastFromMouse(mx, my, meshes));
-    }
-
-    updateMeasure(mx, my) {
-        let isect = this._doRaycast(mx, my);
-        if (isect !== null) {
-            // console.log('isect:', isect);
-            let pt = isect.point;
-            // console.log('pt (measure):', pt);
-            if (this.markPair.length === 1) {
-                this.markPair.push(pt); // now this.markPair.length === 2
-                // console.log('registering this.markPair:', this.markPair);
-                let laser = new ThreeGeo.Laser({
-                    maxPoints: 2,
-                    color: this._laserMarkColor,
-                });
-                laser.updatePoints(this.markPair);
-                laser.name = `measure-mark-${Date.now()}`;
-                this.sceneMeasure.add(laser);
-            } else { // when this.markPair.length === 0 or 2
-                this.markPair = [pt,]; // now this.markPair.length === 1
-                this._laserMarkColor = 0x00ffff;
-                // get a new random color
-                // this._laserMarkColor = Math.floor(0xffffff * Math.random());
-                // console.log('new color:', this._laserMarkColor);
-            }
-            // console.log('this.markPair:', this.markPair);
-        } else {
-            this._updateLaserMarkTmp(null); // now this.markPair.length === 0
-        }
-
-        if (this.guiHelper && !this.guiHelper.data.autoOrbit) this._render();
-
-        this.showMeasureStats(this.markPair);
     }
     updateOrbit(mx, my) {
         let isect = this._doRaycast(mx, my);
@@ -499,12 +368,10 @@ class Viewer {
             // console.log('pt (orbit):', pt);
             // console.log('meshHit:', isect.object.name);
 
-            this._updateLaserMarker(pt);
             this._removeOrbit();
             this._addOrbit(Viewer._calcOrbit(this.camera, pt));
         } else {
             console.log('no isects (orbit)');
-            this._updateLaserMarker(null);
             this._removeOrbit();
             if (this.guiHelper) {
                 this.guiHelper.autoOrbitController.setValue(false);
@@ -519,45 +386,6 @@ class Viewer {
     setOrbitDefault() {
         this._removeOrbit();
         this._addOrbit(Viewer._calcOrbit(this.camera, new THREE.Vector3(0, 0, 0)));
-    }
-    pick(mx, my) {
-        if (!this._showVrLaser && this.markPair.length !== 1) {
-            return;
-        }
-
-        let isect = this._doRaycast(mx, my);
-        if (isect !== null) {
-            // console.log('isect:', isect);
-            let pt = isect.point;
-            // console.log('pt:', pt);
-
-            let ptSrc = new THREE.Vector3(0.003, -0.004, 0.002);
-            this._laser.setSource(ptSrc, this.camera);
-            if (this._showVrLaser) {
-                // this._laser.point(pt, 0xffffff);
-                //----
-                Viewer._applyWithMeshesVisible(
-                    this.objsInteractive, (meshes) =>
-                        this._laser.pointWithRaytrace(pt, meshes, 0xffffff, 16));
-            }
-
-            if (this.markPair.length === 1) {
-                this._updateLaserMarkTmp(this.markPair[0], pt, this._laserMarkColor);
-            } else {
-                this._updateLaserMarkTmp(null); // now this.markPair.length === 0
-            }
-        } else {
-            // console.log('no isects');
-            this._laser.clearPoints();
-        }
-
-        if (this.guiHelper && !this.guiHelper.data.autoOrbit) this._render();
-
-        // = 1(src point) + #(reflection points) + 1(end point)
-        // console.log('#points:', this._laser.getPoints().length);
-    }
-    clearPick() {
-        this._laser.clearPoints();
     }
 
     //======== ======== ======== ========
@@ -601,18 +429,6 @@ class Viewer {
         this.$msg.empty();
         this.$msg.append(`<div>pos [km]: ${Viewer.toCoords(Viewer.m2km(cam.position, unitsPerMeter))}</div>`);
         this.$msg.append(`<div>rot [rad]: ${Viewer.toCoords(cam.rotation)}</div>`);
-    }
-    showMeasureStats(_markPair) {
-        const { unitsPerMeter } = this._projection;
-        this.$msgMeasure.empty();
-        if (_markPair.length === 1) {
-            this.$msgMeasure.append(`<div>points: ${Viewer.toCoords(Viewer.m2km(_markPair[0], unitsPerMeter))} -> </div>`);
-        } else if (_markPair.length === 2) {
-            const p0km = Viewer.m2km(_markPair[0], unitsPerMeter);
-            const p1km = Viewer.m2km(_markPair[1], unitsPerMeter);
-            this.$msgMeasure.append(`<div>points: ${Viewer.toCoords(p0km)} -> ${Viewer.toCoords(p1km)}</div>`);
-            this.$msgMeasure.append(`<div>euclidean dist: ${p0km.distanceTo(p1km).toFixed(3)}</div>`);
-        }
     }
     showMsgTerrain() {
         const ll = this._origin;
@@ -659,7 +475,6 @@ class Viewer {
         this.renderer.clear();
         this.renderer.render(this.scene, this.camera);
         this.renderer.clearDepth();
-        this.renderer.render(this.sceneMeasure, this.camera);
     }
     capture() {
         this.threelet.capture();
@@ -675,7 +490,6 @@ class GuiHelper extends DatGuiDefaults {
         //----
         this.onChangeAutoOrbit = callbacks.onChangeAutoOrbit;
         this.onChangeVis = callbacks.onChangeVis;
-        this.onChangeVrLaser = callbacks.onChangeVrLaser;
         this.onChangeLeaflet = callbacks.onChangeLeaflet;
         this.onChangeLoc = callbacks.onChangeLoc;
     }
@@ -732,19 +546,12 @@ class GuiHelper extends DatGuiDefaults {
         });
         this.autoOrbitController = controller;
 
-        controller = gui.add(params, 'vrLaser').name('Laser');
-        controller.onChange((value) => {
-            this.onChangeVrLaser(value);
-            data.vrLaser = value;
-        });
-
         if (0) {
             controller = gui.add(params, 'reset').name("Reset");
             controller.onChange((value) => {
                 this.applyDefaults();
                 this.onChangeVis(params.vis);
                 this.onChangeAutoOrbit(params.autoOrbit);
-                this.onChangeVrLaser(value);
 
                 Object.assign(data, params);
             });
@@ -795,8 +602,6 @@ class App extends Threelet {
         viewer.showMsg(this.camera);
         viewer.showMsgTerrain();
 
-        this.on('mouse-move', (mx, my) => viewer.pick(mx, my));
-        this.on('mouse-click', (mx, my) => viewer.updateMeasure(mx, my));
         this.on('mouse-click-right', (mx, my) => viewer.updateOrbit(mx, my));
 
         this._appData = { stats, viewer, guiData };
@@ -808,7 +613,6 @@ class App extends Threelet {
             vis: query.mode,
             grids: true,
             autoOrbit: false,
-            vrLaser: false,
             //----
             loc: query.title ? query.title.replace('_', ' ') : "",
             leaflet: true,
@@ -870,9 +674,6 @@ class App extends Threelet {
                     });
                 }
             },
-            onChangeVrLaser: (value) => {
-                viewer.toggleVrLaser(value);
-            },
             onChangeLoc: (value, locations) => {
                 if (value === "(none)") { // dummy case
                     return;
@@ -892,7 +693,6 @@ class App extends Threelet {
             grids: guiData.grids,
             //----
             autoOrbit: guiData.autoOrbit,
-            vrLaser: guiData.vrLaser,
             reset: () => {},
             //----
             loc: guiData.loc,
