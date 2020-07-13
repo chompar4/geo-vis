@@ -1,11 +1,6 @@
-const http = require('http');
-const fs = require('fs');
-const port = 9000;
-const app = http.createServer((req,res) => {
-    res.writeHead(200);
-    if (req.url === '/') req.url = '/index.html'; // courtesy of @JosephCho
-    res.end(fs.readFileSync(__dirname + req.url));
-});
+var connect = require('connect');
+var serveStatic = require('serve-static');
 
-app.listen(port);
-console.log("Listening on port " + port + "...");
+connect()
+    .use(serveStatic(__dirname))
+    .listen(8080, () => console.log('Server running on 8080...'));

@@ -4,13 +4,15 @@
   "description": "geographic visualisation tool",
   "main": "index.js",
   "dependencies": {
+    "connect": "^3.7.0",
+    "serve-static": "^1.14.1",
     "stats": "^1.0.0",
     "three": "^0.118.3"
   },
   "devDependencies": {},
   "scripts": {
     "start": "npm run open && node server.js",
-    "open": "open http://localhost:9000"
+    "open": "open http://localhost:8080"
   },
   "author": "Sam Thompson (chompar4@gmail.com)"
 }
