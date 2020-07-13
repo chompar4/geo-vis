@@ -12,7 +12,8 @@
   },
   "devDependencies": {},
   "scripts": {
-    "start": "node server.js",
+    "dev": "node server.js",
+    "start" : "node index.js",
     "open": "open http://localhost:3000"
   },
   "author": "Sam Thompson (chompar4@gmail.com)"
