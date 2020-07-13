@@ -1,6 +1,17 @@
-var connect = require('connect');
-var serveStatic = require('serve-static');
+const path = require('path')
 
-connect()
-    .use(serveStatic(__dirname))
-    .listen(3000, () => console.log('Server running on 3000...'));
+const express = require('express')
+
+const PORT = 5000
+const app = express()
+
+app.use(express.static(__dirname))
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'))
+})
+
+app.listen(PORT, () => {
+  // eslint-disable-next-line no-console
+  console.log(`Running at http://localhost:${PORT}`)
+})
