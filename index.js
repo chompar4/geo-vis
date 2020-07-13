@@ -611,11 +611,6 @@ class GuiHelper extends DatGuiDefaults {
             this.onChangeLoc(value, this.locations);
             data.Loc = value;
         });
-
-        controller = gui.add(params, 'sourceCode').name("Source Code");
-        controller.onChange((value) => {
-            window.location.href = "https://github.com/w3reality/three-geo/tree/master/examples/geo-viewer";
-        });
     }
 }
 
