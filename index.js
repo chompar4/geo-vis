@@ -599,12 +599,6 @@ class GuiHelper extends DatGuiDefaults {
             });
         }
 
-        controller = gui.add(params, 'leaflet').name('Map');
-        controller.onChange((value) => {
-            this.onChangeLeaflet(value);
-            data.leaflet = value;
-        });
-
         controller = gui.add(params, 'loc',
             Object.keys(this.locations)).name('Location');
         controller.onChange((value) => {
